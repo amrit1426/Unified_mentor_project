@@ -7,10 +7,23 @@ import matplotlib.pyplot as plt
 # ---------------------------------------------------
 # PAGE CONFIG
 # ---------------------------------------------------
+
+
 st.set_page_config(
     page_title="Nassau Candy Executive Analytics",
     layout="wide"
 )
+st.markdown(
+    "<h1 style='text-align: center;'>Product Line Profitability & Margin Performance Analysis</h1>",
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    "<h4 style='text-align: center; color: gray;'>Nassau Candy Distributor</h4>",
+    unsafe_allow_html=True
+)
+
+st.markdown("---")
 
 plt.style.use("dark_background")
 sns.set_theme(style="dark")
@@ -713,3 +726,4 @@ with tab4:
 
         cutoff = np.argmax(pareto["Cumulative %"] >= 0.8) + 1
         st.success(f"{cutoff} products generate 80% of {metric}")
+
