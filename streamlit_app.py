@@ -45,7 +45,7 @@ def load_data():
     df = pd.read_csv("https://raw.githubusercontent.com/amrit1426/Unified_mentor_project/refs/heads/main/Nassau_Candy_Distributor.csv")
     df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
 
-    # Match EDA logic exactly
+    # Match EDA logic
     df["Gross Margin"] = df["Gross Profit"] / df["Sales"]
     df["Profit per Unit"] = df["Gross Profit"] / df["Units"]
 
@@ -140,7 +140,7 @@ with tab1:
 
     st.header("Product Profitability Overview")
 
-    # Match EDA aggregation exactly
+    # Match EDA logic
     product_summary = (
         filtered_df
         .groupby("Product Name")
@@ -726,4 +726,5 @@ with tab4:
 
         cutoff = np.argmax(pareto["Cumulative %"] >= 0.8) + 1
         st.success(f"{cutoff} products generate 80% of {metric}")
+
 
