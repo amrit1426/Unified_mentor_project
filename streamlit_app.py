@@ -53,26 +53,61 @@ def load_data():
 
 df = load_data()
 
+
+
 # ===================================================
-# GLOBAL KPI SUMMARY
+# 🔹 FINANCIAL SUMMARY
 # ===================================================
+
+st.markdown("## Financial Summary")
 
 total_sales = df["Sales"].sum()
-total_cost = df["Cost"].sum()
 total_profit = df["Gross Profit"].sum()
-gross_margin = (total_profit / total_sales) * 100
+total_units = df["Units"].sum()
+total_cost = df["Cost"].sum()
 
-# st.markdown("## Summary")
+gross_margin = (total_profit / total_sales) * 100 if total_sales != 0 else 0
 
-k1, k2, k3, k4 = st.columns(4)
+# Only 3 columns now
+f1, f2, f3 = st.columns(3)
 
-k1.metric("Total Sales", f"${total_sales:,.0f}")
-k2.metric("Total Gross Profit", f"${total_profit:,.0f}")
-k3.metric("Gross Margin %", f"{gross_margin:.2f}%")
-k4.metric("Total Cost", f"${total_cost:,.0f}")
+f1.metric("Total Sales", f"${total_sales:,.0f}")
+f2.metric("Total Gross Profit", f"${total_profit:,.0f}")
+f3.metric("Total Units Sold", f"{total_units:,.0f}")
 
 st.divider()
 
+
+# ===================================================
+# 🔹 KEY PERFORMANCE INDICATORS
+# ===================================================
+
+st.markdown("## Key Performance Indicators")
+
+# Profit per Unit
+profit_per_unit = total_profit / total_units if total_units != 0 else 0
+
+# Margin Volatility
+monthly = (
+    df.set_index("Order Date")
+      .resample("M")
+      .agg({"Sales": "sum", "Gross Profit": "sum"})
+)
+
+monthly["Margin %"] = (
+    monthly["Gross Profit"] / monthly["Sales"]
+) * 100
+
+margin_volatility = monthly["Margin %"].std()
+
+# Now 3 KPI columns
+k1, k2, k3 = st.columns(3)
+
+k1.metric("Gross Margin (%)", f"{gross_margin:.2f}%")
+k2.metric("Profit per Unit", f"${profit_per_unit:,.2f}")
+k3.metric("Margin Volatility", f"{margin_volatility:.2f}")
+
+st.divider()
 
 
 # ---------------------------------------------------
@@ -243,6 +278,69 @@ with tab1:
 
     fig = style_chart(fig, ax)
     st.pyplot(fig)
+
+# -------- Revenue Contribution --------
+st.subheader("Revenue Contribution (%)")
+
+# Aggregate & sort
+revenue_contribution = (
+    product_summary
+    .sort_values("Sales", ascending=False)
+    .head(leaderboard_size)
+    .copy()
+)
+
+# Calculate percentage contribution
+total_sales_products = product_summary["Sales"].sum()
+
+revenue_contribution["Contribution %"] = (
+    revenue_contribution["Sales"] / total_sales_products
+)
+
+# Wrap long product names
+def wrap_labels(label, width=25):
+    import textwrap
+    return "\n".join(textwrap.wrap(label, width))
+
+revenue_contribution["Wrapped Name"] = (
+    revenue_contribution["Product Name"].apply(wrap_labels)
+)
+
+# Plot
+fig, ax = plt.subplots(figsize=(11,7))
+
+bars = ax.barh(
+    revenue_contribution["Wrapped Name"],
+    revenue_contribution["Contribution %"]
+)
+
+ax.invert_yaxis()
+ax.set_xlabel("Contribution % of Total Sales")
+ax.set_ylabel("")
+
+# Reduce y-axis tick font size
+ax.tick_params(axis='y', labelsize=8)
+
+# Annotate bars
+for bar in bars:
+    width = bar.get_width()
+
+    ax.text(
+        width + 0.005,
+        bar.get_y() + bar.get_height()/2,
+        f"{width:.2%}",
+        va="center",
+        fontsize=9,
+        color="white"
+    )
+
+ax.set_xlim(0, revenue_contribution["Contribution %"].max() * 1.15)
+
+# Apply dark styling
+fig = style_chart(fig, ax)
+
+st.pyplot(fig)
+
 
 # ===================================================
 # TAB 2 – DIVISION PERFORMANCE (EXECUTIVE VERSION)
@@ -726,5 +824,4 @@ with tab4:
 
         cutoff = np.argmax(pareto["Cumulative %"] >= 0.8) + 1
         st.success(f"{cutoff} products generate 80% of {metric}")
-
 
