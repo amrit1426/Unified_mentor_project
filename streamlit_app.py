@@ -136,6 +136,17 @@ date_range = st.sidebar.date_input(
 )
 
 # ---------------------------------------------------
+# PRODUCT SEARCH
+# ---------------------------------------------------
+product_list = sorted(df["Product Name"].unique())
+
+selected_product = st.sidebar.selectbox(
+    "Product Search",
+    options=["All Products"] + product_list
+)
+
+
+# ---------------------------------------------------
 # SAFE FILTERING (Fixes unintended filtering issue)
 # ---------------------------------------------------
 filtered_df = df.copy()
@@ -157,6 +168,20 @@ if len(division_filter) < len(df["Division"].unique()):
     filtered_df = filtered_df[
         filtered_df["Division"].isin(division_filter)
     ]
+
+# Apply margin threshold filter
+if margin_threshold > 0:
+    filtered_df = filtered_df[
+        (filtered_df["Gross Margin"] * 100) >= margin_threshold
+    ]
+
+
+# Apply product filter only if specific product selected
+if selected_product != "All Products":
+    filtered_df = filtered_df[
+        filtered_df["Product Name"] == selected_product
+    ]
+
 
 # ---------------------------------------------------
 # TABS
@@ -824,4 +849,3 @@ with tab4:
 
         cutoff = np.argmax(pareto["Cumulative %"] >= 0.8) + 1
         st.success(f"{cutoff} products generate 80% of {metric}")
-
