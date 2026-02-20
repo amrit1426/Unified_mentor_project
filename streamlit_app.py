@@ -54,62 +54,6 @@ def load_data():
 df = load_data()
 
 
-
-# ===================================================
-# 🔹 FINANCIAL SUMMARY
-# ===================================================
-
-st.markdown("## Financial Summary")
-
-total_sales = df["Sales"].sum()
-total_profit = df["Gross Profit"].sum()
-total_units = df["Units"].sum()
-total_cost = df["Cost"].sum()
-
-gross_margin = (total_profit / total_sales) * 100 if total_sales != 0 else 0
-
-# Only 3 columns now
-f1, f2, f3 = st.columns(3)
-
-f1.metric("Total Sales", f"${total_sales:,.0f}")
-f2.metric("Total Gross Profit", f"${total_profit:,.0f}")
-f3.metric("Total Units Sold", f"{total_units:,.0f}")
-
-st.divider()
-
-
-# ===================================================
-# 🔹 KEY PERFORMANCE INDICATORS
-# ===================================================
-
-st.markdown("## Key Performance Indicators")
-
-# Profit per Unit
-profit_per_unit = total_profit / total_units if total_units != 0 else 0
-
-# Margin Volatility
-monthly = (
-    df.set_index("Order Date")
-      .resample("M")
-      .agg({"Sales": "sum", "Gross Profit": "sum"})
-)
-
-monthly["Margin %"] = (
-    monthly["Gross Profit"] / monthly["Sales"]
-) * 100
-
-margin_volatility = monthly["Margin %"].std()
-
-# Now 3 KPI columns
-k1, k2, k3 = st.columns(3)
-
-k1.metric("Gross Margin (%)", f"{gross_margin:.2f}%")
-k2.metric("Profit per Unit", f"${profit_per_unit:,.2f}")
-k3.metric("Margin Volatility", f"{margin_volatility:.2f}")
-
-st.divider()
-
-
 # ---------------------------------------------------
 # SIDEBAR FILTERS
 # ---------------------------------------------------
@@ -181,6 +125,68 @@ if selected_product != "All Products":
     filtered_df = filtered_df[
         filtered_df["Product Name"] == selected_product
     ]
+
+
+# Add Empty Data Protection
+if filtered_df.empty:
+    st.warning("No data available for selected filters.")
+    st.stop()
+
+
+# ===================================================
+# 🔹 FINANCIAL SUMMARY
+# ===================================================
+
+st.markdown("### Financial Summary")
+
+total_sales = filtered_df["Sales"].sum()
+total_profit = filtered_df["Gross Profit"].sum()
+total_units = filtered_df["Units"].sum()
+total_cost = filtered_df["Cost"].sum()
+
+gross_margin = (total_profit / total_sales) * 100 if total_sales != 0 else 0
+
+# Only 3 columns now
+f1, f2, f3 = st.columns(3)
+
+f1.metric("Total Sales", f"${total_sales:,.0f}")
+f2.metric("Total Gross Profit", f"${total_profit:,.0f}")
+f3.metric("Total Units Sold", f"{total_units:,.0f}")
+
+st.divider()
+
+
+# ===================================================
+# 🔹 KEY PERFORMANCE INDICATORS
+# ===================================================
+
+st.markdown("### Key Performance Indicators")
+
+# Profit per Unit
+profit_per_unit = total_profit / total_units if total_units != 0 else 0
+
+# Margin Volatility
+monthly = (
+    filtered_df.set_index("Order Date")
+      .resample("M")
+      .agg({"Sales": "sum", "Gross Profit": "sum"})
+)
+
+monthly["Margin %"] = (
+    monthly["Gross Profit"] / monthly["Sales"]
+) * 100
+
+margin_volatility = monthly["Margin %"].std()
+
+# Now 3 KPI columns
+k1, k2, k3 = st.columns(3)
+
+k1.metric("Gross Margin (%)", f"{gross_margin:.2f}%")
+k2.metric("Profit per Unit", f"${profit_per_unit:,.2f}")
+k3.metric("Margin Volatility", f"{margin_volatility:.2f}")
+
+st.divider()
+
 
 
 # ---------------------------------------------------
