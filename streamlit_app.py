@@ -39,7 +39,7 @@ st.markdown(
         display: flex;
         justify-content: center;
         align-items: center;
-        gap: 120px;
+        gap: 8vw;
     ">
         <img src="data:image/png;base64,{um_base64}" width="220">
         <img src="data:image/png;base64,{nas_base64}" width="260">
@@ -904,6 +904,7 @@ elif selected_module == "Pareto Analysis":
 
         cutoff = np.argmax(pareto["Cumulative %"] >= 0.8) + 1
         st.success(f"{cutoff} products generate 80% of {metric}")
+
 
 
 
