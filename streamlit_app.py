@@ -8,18 +8,51 @@ import matplotlib.pyplot as plt
 # PAGE CONFIG
 # ---------------------------------------------------
 
-
 st.set_page_config(
     page_title="Nassau Candy Executive Analytics",
     layout="wide"
 )
+
+
+# ---------------------------------------------------
+# HEADER LOGOS
+# ---------------------------------------------------
+
+import base64
+import os
+
+def get_base64_image(path):
+    if os.path.exists(path):
+        with open(path, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+    return ""
+
+um_base64 = get_base64_image("assets/um.png")
+nas_base64 = get_base64_image("assets/nas.png")
+
 st.markdown(
-    "<h1 style='text-align: center;'>Product Line Profitability & Margin Performance Analysis</h1>",
+    f"""
+    <div style="
+        background-color: white;
+        padding: 25px 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 120px;
+    ">
+        <img src="data:image/png;base64,{um_base64}" width="220">
+        <img src="data:image/png;base64,{nas_base64}" width="260">
+    </div>
+    """,
     unsafe_allow_html=True
 )
 
+# ---------------------------------------------------
+# MAIN TITLE
+# ---------------------------------------------------
+
 st.markdown(
-    "<h4 style='text-align: center; color: gray;'>Nassau Candy Distributor</h4>",
+    "<h1 style='text-align: center;'>Product Line Profitability & Margin Performance Analysis</h1>",
     unsafe_allow_html=True
 )
 
@@ -53,41 +86,46 @@ def load_data():
 
 df = load_data()
 
-
 # ---------------------------------------------------
-# SIDEBAR FILTERS
+# FILTERS
 # ---------------------------------------------------
-st.sidebar.title("Filters")
 
-division_filter = st.sidebar.multiselect(
-    "Division",
-    options=df["Division"].unique(),
-    default=df["Division"].unique()
-)
+with st.expander("Filters", expanded=False):
 
-margin_threshold = st.sidebar.slider(
-    "Margin Risk Threshold (%)",
-    0, 100, 20
-)
-min_date = df["Order Date"].min()
-max_date = df["Order Date"].max()
+    col1, col2, col3, col4 = st.columns(4)
 
-date_range = st.sidebar.date_input(
-    "Date Range",
-    value=(min_date, max_date),
-    min_value=min_date,
-    max_value=max_date
-)
+    min_date = df["Order Date"].min()
+    max_date = df["Order Date"].max()
 
-# ---------------------------------------------------
-# PRODUCT SEARCH
-# ---------------------------------------------------
-product_list = sorted(df["Product Name"].unique())
+    with col1:
+        date_range = st.date_input(
+            "Date Range",
+            value=(min_date, max_date),
+            min_value=min_date,
+            max_value=max_date
+        )
 
-selected_product = st.sidebar.selectbox(
-    "Product Search",
-    options=["All Products"] + product_list
-)
+    with col2:
+        division_filter = st.multiselect(
+            "Division",
+            options=df["Division"].unique(),
+            default=df["Division"].unique()
+        )
+
+    with col3:
+        margin_threshold = st.slider(
+            "Margin Risk Threshold (%)",
+            0, 100, 20
+        )
+
+    with col4:
+        product_list = sorted(df["Product Name"].unique())
+        selected_product = st.selectbox(
+            "Product Search",
+            options=["All Products"] + product_list
+        )
+
+    st.divider()
 
 
 # ---------------------------------------------------
@@ -134,42 +172,23 @@ if filtered_df.empty:
 
 
 # ===================================================
-# 🔹 FINANCIAL SUMMARY
+# 🔷 FINANCIAL OVERVIEW AND KPIs
 # ===================================================
 
-st.markdown("### Financial Summary")
+st.markdown("### Financial Overview and KPIs")
 
+# --- Calculations ---
 total_sales = filtered_df["Sales"].sum()
 total_profit = filtered_df["Gross Profit"].sum()
 total_units = filtered_df["Units"].sum()
-total_cost = filtered_df["Cost"].sum()
 
 gross_margin = (total_profit / total_sales) * 100 if total_sales != 0 else 0
-
-# Only 3 columns now
-f1, f2, f3 = st.columns(3)
-
-f1.metric("Total Sales", f"${total_sales:,.0f}")
-f2.metric("Total Gross Profit", f"${total_profit:,.0f}")
-f3.metric("Total Units Sold", f"{total_units:,.0f}")
-
-st.divider()
-
-
-# ===================================================
-# 🔹 KEY PERFORMANCE INDICATORS
-# ===================================================
-
-st.markdown("### Key Performance Indicators")
-
-# Profit per Unit
 profit_per_unit = total_profit / total_units if total_units != 0 else 0
 
-# Margin Volatility
 monthly = (
     filtered_df.set_index("Order Date")
-      .resample("M")
-      .agg({"Sales": "sum", "Gross Profit": "sum"})
+    .resample("M")
+    .agg({"Sales": "sum", "Gross Profit": "sum"})
 )
 
 monthly["Margin %"] = (
@@ -177,34 +196,57 @@ monthly["Margin %"] = (
 ) * 100
 
 margin_volatility = monthly["Margin %"].std()
+margin_volatility = 0 if pd.isna(margin_volatility) else margin_volatility
 
-# Now 3 KPI columns
-k1, k2, k3 = st.columns(3)
 
-k1.metric("Gross Margin (%)", f"{gross_margin:.2f}%")
-k2.metric("Profit per Unit", f"${profit_per_unit:,.2f}")
-k3.metric("Margin Volatility", f"{margin_volatility:.2f}")
+# =====================
+# Row 1 — Scale Metrics
+# =====================
+
+s1, s2, s3 = st.columns(3)
+
+s1.metric("Total Sales", f"${total_sales:,.0f}")
+s2.metric("Total Gross Profit", f"${total_profit:,.0f}")
+s3.metric("Total Units Sold", f"{total_units:,.0f}")
+
+# ==========================
+# Row 2 — Performance Metrics
+# ==========================
+
+p1, p2, p3 = st.columns(3)
+
+p1.metric("Gross Margin (%)", f"{gross_margin:.2f}%")
+p2.metric("Profit per Unit", f"${profit_per_unit:,.2f}")
+p3.metric("Margin Volatility", f"{margin_volatility:.2f}")
 
 st.divider()
 
 
+# ===================================================
+# MODULE NAVIGATION (Sidebar)
+# ===================================================
 
-# ---------------------------------------------------
-# TABS
-# ---------------------------------------------------
-tab1, tab2, tab3, tab4 = st.tabs([
-    "Product Profitability",
-    "Division Performance",
-    "Cost Diagnostics",
-    "Pareto Analysis"
-])
+st.sidebar.markdown("## Modules")
+
+selected_module = st.sidebar.radio(
+    "Select Module",
+    [
+        "Product Profitability",
+        "Division Performance",
+        "Cost Diagnostics",
+        "Pareto Analysis"
+    ]
+)
+
+
 
 # ===================================================
 # TAB 1 – PRODUCT PROFITABILITY
 # ===================================================
-with tab1:
 
-    st.header("Product Profitability Overview")
+if selected_module == "Product Profitability":
+    st.markdown("## Product Profitability Overview")
+
 
     # Match EDA logic
     product_summary = (
@@ -218,6 +260,8 @@ with tab1:
         })
         .reset_index()
     )
+
+
 
     # -------- Leaderboard Controls --------
     col1, col2 = st.columns(2)
@@ -310,73 +354,75 @@ with tab1:
     fig = style_chart(fig, ax)
     st.pyplot(fig)
 
-# -------- Revenue Contribution --------
-st.subheader("Revenue Contribution (%)")
+    # -------- Revenue Contribution --------
+    st.subheader("Revenue Contribution (%)")
 
-# Aggregate & sort
-revenue_contribution = (
-    product_summary
-    .sort_values("Sales", ascending=False)
-    .head(leaderboard_size)
-    .copy()
-)
-
-# Calculate percentage contribution
-total_sales_products = product_summary["Sales"].sum()
-
-revenue_contribution["Contribution %"] = (
-    revenue_contribution["Sales"] / total_sales_products
-)
-
-# Wrap long product names
-def wrap_labels(label, width=25):
-    import textwrap
-    return "\n".join(textwrap.wrap(label, width))
-
-revenue_contribution["Wrapped Name"] = (
-    revenue_contribution["Product Name"].apply(wrap_labels)
-)
-
-# Plot
-fig, ax = plt.subplots(figsize=(11,7))
-
-bars = ax.barh(
-    revenue_contribution["Wrapped Name"],
-    revenue_contribution["Contribution %"]
-)
-
-ax.invert_yaxis()
-ax.set_xlabel("Contribution % of Total Sales")
-ax.set_ylabel("")
-
-# Reduce y-axis tick font size
-ax.tick_params(axis='y', labelsize=8)
-
-# Annotate bars
-for bar in bars:
-    width = bar.get_width()
-
-    ax.text(
-        width + 0.005,
-        bar.get_y() + bar.get_height()/2,
-        f"{width:.2%}",
-        va="center",
-        fontsize=9,
-        color="white"
+    # Aggregate & sort
+    revenue_contribution = (
+        product_summary
+        .sort_values("Sales", ascending=False)
+        .head(leaderboard_size)
+        .copy()
     )
 
-ax.set_xlim(0, revenue_contribution["Contribution %"].max() * 1.15)
+    # Calculate percentage contribution
+    total_sales_products = product_summary["Sales"].sum()
 
-# Apply dark styling
-fig = style_chart(fig, ax)
+    revenue_contribution["Contribution %"] = (
+        revenue_contribution["Sales"] / total_sales_products
+    )
 
-st.pyplot(fig)
+    # Wrap long product names
+    def wrap_labels(label, width=25):
+        import textwrap
+        return "\n".join(textwrap.wrap(label, width))
+
+    revenue_contribution["Wrapped Name"] = (
+        revenue_contribution["Product Name"].apply(wrap_labels)
+    )
+
+    # Plot
+    fig, ax = plt.subplots(figsize=(11,7))
+
+    bars = ax.barh(
+        revenue_contribution["Wrapped Name"],
+        revenue_contribution["Contribution %"]
+    )
+
+    ax.invert_yaxis()
+    ax.set_xlabel("Contribution % of Total Sales")
+    ax.set_ylabel("")
+
+    # Reduce y-axis tick font size
+    ax.tick_params(axis='y', labelsize=8)
+
+    # Annotate bars
+    for bar in bars:
+        width = bar.get_width()
+
+        ax.text(
+            width + 0.005,
+            bar.get_y() + bar.get_height()/2,
+            f"{width:.2%}",
+            va="center",
+            fontsize=9,
+            color="white"
+        )
+
+    ax.set_xlim(0, revenue_contribution["Contribution %"].max() * 1.15)
+
+    # Apply dark styling
+    fig = style_chart(fig, ax)
+
+    st.pyplot(fig)
+
 
 
 # ===================================================
 # TAB 2 – DIVISION PERFORMANCE (EXECUTIVE VERSION)
 # ===================================================
-with tab2:
+
+elif selected_module == "Division Performance":
 
     st.header("Division Performance Dashboard")
 
@@ -624,7 +670,8 @@ with tab2:
 # ===================================================
 # TAB 3 – COST DIAGNOSTICS
 # ===================================================
-with tab3:
+
+elif selected_module == "Cost Diagnostics":
 
     st.header("Cost Structure Diagnostics")
     st.markdown(
@@ -819,7 +866,8 @@ with tab3:
 # ===================================================
 # TAB 4 – PARETO (Line Only)
 # ===================================================
-with tab4:
+
+elif selected_module == "Pareto Analysis":
 
     st.header("Profit & Revenue Concentration Analysis")
 
