@@ -33,8 +33,8 @@ nas_base64 = get_base64_image("assets/nas.png")
 st.markdown(
     f"""
     <div style="
-        background-color: #ffffff;
-        border-bottom: 1px solid #e5e7eb;
+        background-color: #e5e7eb;
+        # border-bottom: 1px solid #e5e7eb;
         padding: 25px 0;
         display: flex;
         justify-content: center;
@@ -57,7 +57,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.markdown("---")
+# st.markdown("---")
 
 plt.style.use("dark_background")
 sns.set_theme(style="dark")
@@ -904,4 +904,5 @@ elif selected_module == "Pareto Analysis":
 
         cutoff = np.argmax(pareto["Cumulative %"] >= 0.8) + 1
         st.success(f"{cutoff} products generate 80% of {metric}")
+
 
