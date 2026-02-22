@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import plotly.express as px
 
 # ---------------------------------------------------
 # PAGE CONFIG
@@ -10,6 +12,7 @@ import matplotlib.pyplot as plt
 
 st.set_page_config(
     page_title="Nassau Candy Executive Analytics",
+    page_icon="Active",
     layout="wide"
 )
 
@@ -172,13 +175,10 @@ if filtered_df.empty:
     st.stop()
 
 
-# ===================================================
-# 🔷 FINANCIAL OVERVIEW AND KPIs
-# ===================================================
 
-st.markdown("### Financial Overview and KPIs")
-
-# --- Calculations ---
+# ===================================================
+# GLOBAL KPI CALCULATIONS
+# ===================================================
 total_sales = filtered_df["Sales"].sum()
 total_profit = filtered_df["Gross Profit"].sum()
 total_units = filtered_df["Units"].sum()
@@ -200,52 +200,169 @@ margin_volatility = monthly["Margin %"].std()
 margin_volatility = 0 if pd.isna(margin_volatility) else margin_volatility
 
 
-# =====================
-# Row 1 — Scale Metrics
-# =====================
-
-s1, s2, s3 = st.columns(3)
-
-s1.metric("Total Sales", f"${total_sales:,.0f}")
-s2.metric("Total Gross Profit", f"${total_profit:,.0f}")
-s3.metric("Total Units Sold", f"{total_units:,.0f}")
-
-# ==========================
-# Row 2 — Performance Metrics
-# ==========================
-
-p1, p2, p3 = st.columns(3)
-
-p1.metric("Gross Margin (%)", f"{gross_margin:.2f}%")
-p2.metric("Profit per Unit", f"${profit_per_unit:,.2f}")
-p3.metric("Margin Volatility", f"{margin_volatility:.2f}")
-
-st.divider()
-
-
 # ===================================================
-# MODULE NAVIGATION (Sidebar)
+# SIDEBAR NAVIGATION
 # ===================================================
 
-st.sidebar.markdown("## Modules")
+with st.sidebar.container():
+    
+    st.markdown("### 📊 Modules")
+    
+    selected_module = st.radio(
+        "Select Module",
+        [
+            "Dashboard", 
+            "Product Profitability",
+            "Division Performance",
+            "Cost Diagnostics",
+            "Pareto Analysis"
+        ],
+        label_visibility="collapsed"
+    )
 
-selected_module = st.sidebar.radio(
-    "Select Module",
-    [
-        "Product Profitability",
-        "Division Performance",
-        "Cost Diagnostics",
-        "Pareto Analysis"
-    ]
-)
 
+
+
+# ---------------------------------------------------
+# DASHBOARD
+# ---------------------------------------------------
+
+if selected_module == "Dashboard":
+
+    st.markdown("### Financial Dashboard")
+
+    # ===================================================
+    # ===================================================
+    # ROW 1 – KPI REPRESENTATIONS
+    # ===================================================
+
+    kpi1, spacer1, kpi2, spacer2, kpi3 = st.columns([1, 0.08, 1, 0.08, 1])
+
+    # ---------------------------------------------------
+    # KPI 1 – GROSS MARGIN (%)
+    # ---------------------------------------------------
+
+    with kpi1:
+
+        # Title WITH VALUE
+        st.markdown(f"**Gross Margin: {gross_margin:.1f}%**")
+
+        left, right = st.columns([1, 1.2])
+
+        # LEFT SIDE TEXT
+        with left:
+            st.markdown(f"**Sales**  \n${total_sales:,.0f}")
+            st.markdown(f"**Gross Profit**  \n${total_profit:,.0f}")
+
+        # RIGHT SIDE DONUT
+        with right:
+
+            fig_margin = go.Figure(go.Pie(
+                values=[gross_margin, 100 - gross_margin],
+                hole=0.75,
+                textinfo="none"
+            ))
+
+            fig_margin.update_layout(
+                height=200,
+                margin=dict(t=0, b=0, l=0, r=0),
+                showlegend=False,
+                annotations=[dict(
+                    text=f"<b>{gross_margin:.1f}%</b>",
+                    x=0.5, y=0.5,
+                    showarrow=False,
+                    font=dict(size=14)
+                )],
+                font=dict(size=9)
+            )
+
+            st.plotly_chart(fig_margin, use_container_width=True)
+
+
+    # ---------------------------------------------------
+    # KPI 2 – PROFIT PER UNIT (FIXED ALIGNMENT)
+    # ---------------------------------------------------
+
+    with kpi2:
+
+        # Title top-left
+        st.markdown(f"**Profit per Unit: ${profit_per_unit:,.2f}**")
+
+        # Units Sold below title
+        st.markdown(f"**Units Sold**  \n{total_units:,.0f}")
+
+        gauge_max = profit_per_unit * 1.5 if profit_per_unit > 0 else 10
+
+        fig_ppu = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=profit_per_unit,
+            number={'font': {'size': 14}},
+            gauge={
+                'axis': {'range': [0, gauge_max]},
+                'bar': {'color': '#4C72B0', 'thickness': 0.6}
+            }
+        ))
+
+        fig_ppu.update_layout(
+            height=100,
+            margin=dict(t=0, b=0, l=0, r=0),
+            font=dict(size=9)
+        )
+
+        st.plotly_chart(fig_ppu, use_container_width=True)
+
+
+    # ---------------------------------------------------
+    # KPI 3 – MARGIN VOLATILITY (UNCHANGED)
+    # ---------------------------------------------------
+
+    with kpi3:
+
+        st.markdown("**Margin Volatility**")
+
+        st.metric(
+            label="",
+            value=f"{margin_volatility:.2f}"
+        )
+    
+    # ===================================================
+    # ROW 2 – SALES & GROSS PROFIT TREND (2 LINES)
+    # ===================================================
+
+    st.markdown("**Monthly Trend**")
+
+    fig_trend = go.Figure()
+
+    fig_trend.add_trace(go.Scatter(
+        x=monthly.index,
+        y=monthly["Sales"],
+        mode="lines",
+        name="Sales"
+    ))
+
+    fig_trend.add_trace(go.Scatter(
+        x=monthly.index,
+        y=monthly["Gross Profit"],
+        mode="lines",
+        name="Gross Profit"
+    ))
+
+    fig_trend.update_layout(
+        height=280,
+        margin=dict(t=10, b=10, l=10, r=10),
+        font=dict(size=10),
+        legend=dict(font=dict(size=9))
+    )
+
+    st.plotly_chart(fig_trend, use_container_width=True)
 
 
 # ===================================================
 # TAB 1 – PRODUCT PROFITABILITY
 # ===================================================
 
-if selected_module == "Product Profitability":
+
+elif selected_module == "Product Profitability":
     st.markdown("## Product Profitability Overview")
 
 
@@ -904,7 +1021,3 @@ elif selected_module == "Pareto Analysis":
 
         cutoff = np.argmax(pareto["Cumulative %"] >= 0.8) + 1
         st.success(f"{cutoff} products generate 80% of {metric}")
-
-
-
-
