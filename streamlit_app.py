@@ -426,7 +426,7 @@ if selected_module == "Overview":
             ))
 
             fig_margin.update_layout(
-                height=140,
+                height=100,
                 margin=dict(t=0, b=0, l=0, r=0),
                 showlegend=False,
                 annotations=[dict(
@@ -1124,4 +1124,5 @@ elif selected_module == "Pareto Analysis":
 
         cutoff = np.argmax(pareto["Cumulative %"] >= 0.8) + 1
         st.success(f"{cutoff} products generate 80% of {metric}")
+
 
