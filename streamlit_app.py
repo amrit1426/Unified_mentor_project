@@ -5,13 +5,15 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import plotly.express as px
+import base64
+import os
 
 # ---------------------------------------------------
 # PAGE CONFIG
 # ---------------------------------------------------
 
 st.set_page_config(
-    page_title="Nassau Candy Executive Analytics",
+    page_title="Nassau Candy Product Line Profitability & Margin Performance Analysis",
     page_icon="Active",
     layout="wide"
 )
@@ -21,8 +23,6 @@ st.set_page_config(
 # HEADER LOGOS
 # ---------------------------------------------------
 
-import base64
-import os
 
 def get_base64_image(path):
     if os.path.exists(path):
@@ -55,13 +55,8 @@ st.markdown(
 # MAIN TITLE
 # ---------------------------------------------------
 
-st.markdown(
-    "<h1 style='text-align: center;'>Product Line Profitability & Margin Performance Analysis</h1>",
-    unsafe_allow_html=True
-)
-
-# st.markdown("---")
-
+st.markdown("## Product Line Profitability & Margin Performance Analysis")
+st.divider()
 plt.style.use("dark_background")
 sns.set_theme(style="dark")
 
@@ -75,65 +70,135 @@ def style_chart(fig, ax):
     return fig
 
 # ---------------------------------------------------
-# LOAD DATA
+# LOAD & CLEAN DATA WITH LOGGING
 # ---------------------------------------------------
+
 @st.cache_data
 def load_data():
-    df = pd.read_csv("https://raw.githubusercontent.com/amrit1426/Unified_mentor_project/refs/heads/main/Nassau_Candy_Distributor.csv")
-    df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")
+    # Load CSV
+    df = pd.read_csv(
+        "https://raw.githubusercontent.com/amrit1426/Unified_mentor_project/refs/heads/main/Nassau_Candy_Distributor.csv"
+    )
+    original_rows = len(df)
 
-    # Match EDA logic
-    df["Gross Margin"] = df["Gross Profit"] / df["Sales"]
-    df["Profit per Unit"] = df["Gross Profit"] / df["Units"]
+    # Drop exact duplicate rows
+    df = df.drop_duplicates()
+    duplicates_dropped = original_rows - len(df)
+
+    # Convert dates
+    df['Order Date'] = pd.to_datetime(df['Order Date'], format='%d-%m-%Y', errors='coerce')
+    df['Ship Date'] = pd.to_datetime(df['Ship Date'], format='%d-%m-%Y', errors='coerce')
+    df = df.dropna(subset=['Order Date', 'Ship Date'])
+    dates_dropped = original_rows - duplicates_dropped - len(df)
+
+    # Enforce numeric types
+    numeric_cols = ['Sales', 'Cost', 'Units', 'Gross Profit']
+    df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors='coerce')
+
+    # Remove rows with zero or negative Sales, Cost, or Units
+    pre_filter_rows = len(df)
+    df = df[(df['Sales'] > 0) & (df['Cost'] > 0) & (df['Units'] > 0)]
+    invalid_numeric_dropped = pre_filter_rows - len(df)
+
+    # Validate Gross Profit (remove inconsistent rows)
+    pre_profit_check = len(df)
+    df = df[df['Gross Profit'].round(2) == (df['Sales'] - df['Cost']).round(2)]
+    profit_mismatch_dropped = pre_profit_check - len(df)
+
+    # Standardize text labels
+    df['Division'] = df['Division'].str.strip().str.title()
+    df['Product Name'] = df['Product Name'].str.strip().str.title()
+
+    # Reset index
+    df = df.reset_index(drop=True)
+
+    # # Logging summary
+    # st.markdown("### Data Cleaning Summary")
+    # st.markdown(f"- Original rows: {original_rows}")
+    # st.markdown(f"- Duplicate rows dropped: {duplicates_dropped}")
+    # st.markdown(f"- Invalid/missing dates dropped: {dates_dropped}")
+    # st.markdown(f"- Zero/negative Sales, Cost, or Units dropped: {invalid_numeric_dropped}")
+    # st.markdown(f"- Gross Profit mismatches dropped: {profit_mismatch_dropped}")
+    # st.markdown(f"- Final cleaned rows: {len(df)}")
 
     return df
 
+# Load and display cleaned dataset
 df = load_data()
 
+
+
 # ---------------------------------------------------
-# FILTERS
+# PROFITABILITY METRICS CALCULATION
 # ---------------------------------------------------
 
-with st.expander("Filters", expanded=False):
+def add_row_level_features(df):
+    df = df.copy()
+    df["Gross Margin"] = df["Gross Profit"] / df["Sales"]
+    df["Profit per Unit"] = df["Gross Profit"] / df["Units"]
+    return df
 
-    col1, col2, col3, col4 = st.columns(4)
+df = add_row_level_features(df)
 
+
+# ---------------------------------------------------
+# SIDEBAR NAVIGATION (Modules)
+# ---------------------------------------------------
+
+with st.sidebar.expander("Modules", expanded=False):  # Keep modules separate
+    selected_module = st.radio(
+        "Select Module",
+        [
+            "Overview", 
+            "Product Profitability Overview",
+            "Division Performance",
+            "Cost Diagnostics",
+            "Pareto Analysis"
+        ],
+        label_visibility="collapsed"
+    )
+
+
+# ---------------------------------------------------
+# FILTERS (Sidebar)
+# ---------------------------------------------------
+
+with st.sidebar.expander("Filters", expanded=True):  # Move filters to sidebar
     min_date = df["Order Date"].min()
     max_date = df["Order Date"].max()
 
-    with col1:
-        date_range = st.date_input(
-            "Date Range",
-            value=(min_date, max_date),
-            min_value=min_date,
-            max_value=max_date
-        )
 
-    with col2:
-        division_filter = st.multiselect(
-            "Division",
-            options=df["Division"].unique(),
-            default=df["Division"].unique()
-        )
 
-    with col3:
-        margin_threshold = st.slider(
-            "Margin Risk Threshold (%)",
-            0, 100, 20
-        )
+    # Product Search
+    product_list = sorted(df["Product Name"].unique())
+    selected_product = st.selectbox(
+        "Product Search",
+        options=["All Products"] + product_list
+    )
+    # Division Filter
+    division_list = sorted(df["Division"].unique())
+    selected_division = st.selectbox(
+        "Division", 
+        options=["All Divisions"] + division_list
+    )
 
-    with col4:
-        product_list = sorted(df["Product Name"].unique())
-        selected_product = st.selectbox(
-            "Product Search",
-            options=["All Products"] + product_list
-        )
+    # Margin Threshold
+    margin_threshold = st.slider(
+        "Margin Risk Threshold (%)",
+        0, 100, 0
+    )
 
-    st.divider()
+    # Date Range
+    date_range = st.date_input(
+        "Date Range",
+        value=(min_date, max_date),
+        min_value=min_date,
+        max_value=max_date
+    )
 
 
 # ---------------------------------------------------
-# SAFE FILTERING (Fixes unintended filtering issue)
+# SAFE FILTERING
 # ---------------------------------------------------
 filtered_df = df.copy()
 
@@ -149,18 +214,16 @@ if isinstance(date_range, (list, tuple)) and len(date_range) == 2:
             (filtered_df["Order Date"] <= end_date)
         ]
 
-# Apply division filter only if subset selected
-if len(division_filter) < len(df["Division"].unique()):
+# Apply division filter only if specific division selected
+if selected_division != "All Divisions":
     filtered_df = filtered_df[
-        filtered_df["Division"].isin(division_filter)
+        filtered_df["Division"] == selected_division
     ]
-
 # Apply margin threshold filter
 if margin_threshold > 0:
     filtered_df = filtered_df[
         (filtered_df["Gross Margin"] * 100) >= margin_threshold
     ]
-
 
 # Apply product filter only if specific product selected
 if selected_product != "All Products":
@@ -168,75 +231,175 @@ if selected_product != "All Products":
         filtered_df["Product Name"] == selected_product
     ]
 
-
 # Add Empty Data Protection
 if filtered_df.empty:
     st.warning("No data available for selected filters.")
     st.stop()
 
 
+# ---------------------------------------------------
+# KPI CALCULATIONS
+# ---------------------------------------------------
 
-# ===================================================
-# GLOBAL KPI CALCULATIONS
-# ===================================================
-total_sales = filtered_df["Sales"].sum()
-total_profit = filtered_df["Gross Profit"].sum()
-total_units = filtered_df["Units"].sum()
+def calculate_kpis(filtered_df):
 
-gross_margin = (total_profit / total_sales) * 100 if total_sales != 0 else 0
-profit_per_unit = total_profit / total_units if total_units != 0 else 0
+    # -----------------------------
+    # Global KPIs
+    # -----------------------------
+    total_sales = filtered_df["Sales"].sum()
+    total_profit = filtered_df["Gross Profit"].sum()
+    total_units = filtered_df["Units"].sum()
 
-monthly = (
-    filtered_df.set_index("Order Date")
-    .resample("M")
-    .agg({"Sales": "sum", "Gross Profit": "sum"})
-)
+    gross_margin = total_profit / total_sales if total_sales else 0
+    profit_per_unit = total_profit / total_units if total_units else 0
 
-monthly["Margin %"] = (
-    monthly["Gross Profit"] / monthly["Sales"]
-) * 100
-
-margin_volatility = monthly["Margin %"].std()
-margin_volatility = 0 if pd.isna(margin_volatility) else margin_volatility
-
-
-# ===================================================
-# SIDEBAR NAVIGATION
-# ===================================================
-
-with st.sidebar.container():
-    
-    st.markdown("### 📊 Modules")
-    
-    selected_module = st.radio(
-        "Select Module",
-        [
-            "Dashboard", 
-            "Product Profitability",
-            "Division Performance",
-            "Cost Diagnostics",
-            "Pareto Analysis"
-        ],
-        label_visibility="collapsed"
+    # -----------------------------
+    # Product Summary Calculations
+    # -----------------------------
+    product_summary = (
+        filtered_df.groupby("Product Name")
+        .agg({
+            "Sales": "sum",
+            "Gross Profit": "sum",
+            "Units": "sum"
+        })
+        .reset_index()
     )
 
+    product_summary["Gross Margin (%)"] = (
+        product_summary["Gross Profit"] / product_summary["Sales"] * 100
+    ).fillna(0)
 
+    product_summary["Profit per Unit"] = (
+        product_summary["Gross Profit"] / product_summary["Units"]
+    ).fillna(0)
+    if total_sales:
+        product_summary["Revenue Contribution (%)"] = (
+            product_summary["Sales"] / total_sales * 100
+        )
+    else:
+        product_summary["Revenue Contribution (%)"] = 0
+
+    if total_profit:
+        product_summary["Profit Contribution (%)"] = (
+            product_summary["Gross Profit"] / total_profit * 100
+        )
+    else:
+        product_summary["Profit Contribution (%)"] = 0
+
+
+    # -----------------------------
+    # Division-Level Aggregation
+    # -----------------------------
+    division_summary = (
+        filtered_df
+        .groupby("Division")
+        .agg({
+            "Sales": "sum",
+            "Gross Profit": "sum",
+            "Cost": "sum"
+        })
+        .reset_index()
+    )
+
+    division_summary["Gross Margin (%)"] = np.where(
+        division_summary["Sales"] > 0,
+        division_summary["Gross Profit"] / division_summary["Sales"] * 100,
+        0
+    )
+
+    if total_sales:
+        division_summary["Revenue Contribution (%)"] = (
+            division_summary["Sales"] / total_sales * 100
+        )
+    else:
+        division_summary["Revenue Contribution (%)"] = 0
+
+    if total_profit:
+        division_summary["Profit Contribution (%)"] = (
+            division_summary["Gross Profit"] / total_profit * 100
+        )
+    else:
+        division_summary["Profit Contribution (%)"] = 0
+
+    division_summary["Profit-Revenue Gap (%)"] = (
+        division_summary["Profit Contribution (%)"] -
+        division_summary["Revenue Contribution (%)"]
+    )
+
+    division_summary["Performance Flag"] = np.where(
+        division_summary["Profit-Revenue Gap (%)"] > 0,
+        "Overperforming",
+        np.where(
+            division_summary["Profit-Revenue Gap (%)"] < 0,
+            "Underperforming",
+            "Neutral"
+        )
+    )
+    # -----------------------------
+    # Margin Volatility
+    # -----------------------------
+    monthly_df = (
+        filtered_df
+        .set_index("Order Date")
+        .resample("ME")
+        .agg({"Sales": "sum", "Gross Profit": "sum"})
+        .reset_index()
+    )
+
+    monthly_df = monthly_df[monthly_df["Sales"] > 0]
+
+    monthly_df["Margin %"] = (
+        monthly_df["Gross Profit"] / monthly_df["Sales"] * 100
+    )
+
+    if len(monthly_df) > 1:
+        margin_volatility = monthly_df["Margin %"].std()
+    else:
+        margin_volatility = 0
+
+    monthly_df["Rolling Volatility"] = (
+        monthly_df["Margin %"].rolling(window=3).std()
+    )
+    monthly_df["Rolling Volatility"] = (
+        monthly_df["Rolling Volatility"]
+        .fillna(0)
+    )
+    return {
+        "total_sales": total_sales,
+        "total_profit": total_profit,
+        "total_units": total_units,
+        "gross_margin": gross_margin,
+        "profit_per_unit": profit_per_unit,
+        "product_summary": product_summary,
+        "division_summary": division_summary,
+        "margin_volatility": margin_volatility,
+        "monthly_df": monthly_df
+    }
 
 
 # ---------------------------------------------------
-# DASHBOARD
+# KEY PERFORMANCE INDICATORS & TRENDS (OVERVIEW)
 # ---------------------------------------------------
 
-if selected_module == "Dashboard":
+if selected_module == "Overview":
+    kpi_data = calculate_kpis(filtered_df)
+    monthly_df = kpi_data["monthly_df"]
+    margin_volatility = kpi_data["margin_volatility"]
+    gross_margin = kpi_data["gross_margin"]*100
+    total_sales = kpi_data["total_sales"]
+    total_profit = kpi_data["total_profit"]
+    profit_per_unit = kpi_data["profit_per_unit"]
+    total_units = kpi_data["total_units"]
 
-    st.markdown("### Financial Dashboard")
+    st.markdown("### Key Performance Indicators")
 
     # ===================================================
     # ===================================================
     # ROW 1 – KPI REPRESENTATIONS
     # ===================================================
 
-    kpi1, spacer1, kpi2, spacer2, kpi3 = st.columns([1, 0.08, 1, 0.08, 1])
+    kpi1, spacer1, kpi2, spacer2, kpi3 = st.columns([1, 0.14, 1, 0.1, 1])
 
     # ---------------------------------------------------
     # KPI 1 – GROSS MARGIN (%)
@@ -246,13 +409,12 @@ if selected_module == "Dashboard":
 
         # Title WITH VALUE
         st.markdown(f"**Gross Margin: {gross_margin:.1f}%**")
-
         left, right = st.columns([1, 1.2])
 
         # LEFT SIDE TEXT
         with left:
-            st.markdown(f"**Sales**  \n${total_sales:,.0f}")
-            st.markdown(f"**Gross Profit**  \n${total_profit:,.0f}")
+            st.markdown(f"**Total Sales**  \n${total_sales:,.0f}")
+            st.markdown(f"**Total Gross Profit**  \n${total_profit:,.0f}")
 
         # RIGHT SIDE DONUT
         with right:
@@ -264,7 +426,7 @@ if selected_module == "Dashboard":
             ))
 
             fig_margin.update_layout(
-                height=200,
+                height=140,
                 margin=dict(t=0, b=0, l=0, r=0),
                 showlegend=False,
                 annotations=[dict(
@@ -276,11 +438,11 @@ if selected_module == "Dashboard":
                 font=dict(size=9)
             )
 
-            st.plotly_chart(fig_margin, use_container_width=True)
+            st.plotly_chart(fig_margin, width='stretch')
 
 
     # ---------------------------------------------------
-    # KPI 2 – PROFIT PER UNIT (FIXED ALIGNMENT)
+    # KPI 2 – PROFIT PER UNIT
     # ---------------------------------------------------
 
     with kpi2:
@@ -291,7 +453,8 @@ if selected_module == "Dashboard":
         # Units Sold below title
         st.markdown(f"**Units Sold**  \n{total_units:,.0f}")
 
-        gauge_max = profit_per_unit * 1.5 if profit_per_unit > 0 else 10
+        # gauge_max = profit_per_unit * 1.5 if profit_per_unit > 0 else 10
+        gauge_max = max(profit_per_unit * 1.3, 3)
 
         fig_ppu = go.Figure(go.Indicator(
             mode="gauge+number",
@@ -304,94 +467,141 @@ if selected_module == "Dashboard":
         ))
 
         fig_ppu.update_layout(
-            height=100,
+            height=80,
             margin=dict(t=0, b=0, l=0, r=0),
             font=dict(size=9)
         )
 
-        st.plotly_chart(fig_ppu, use_container_width=True)
+        st.plotly_chart(fig_ppu, width='stretch')
 
 
     # ---------------------------------------------------
-    # KPI 3 – MARGIN VOLATILITY (UNCHANGED)
+    # KPI 3 – MARGIN VOLATILITY
     # ---------------------------------------------------
+
+
 
     with kpi3:
 
-        st.markdown("**Margin Volatility**")
+        st.markdown("**Margin Volatility (Std Dev)**")
 
         st.metric(
             label="",
-            value=f"{margin_volatility:.2f}"
+            value=f"{margin_volatility:.2f}%",
+            help="Standard deviation of monthly margin %. Lower indicates more stable profitability."
         )
-    
+
+        # -----------------------------
+        # Mini Rolling Volatility Chart
+        # -----------------------------
+
+        fig_vol = go.Figure()
+
+        fig_vol.add_trace(go.Scatter(
+            x=monthly_df["Order Date"],
+            y=monthly_df["Rolling Volatility"],
+            mode="lines",
+            line=dict(width=2),
+            showlegend=False
+        ))
+
+        fig_vol.update_layout(
+            height=80,
+            margin=dict(t=10, b=10, l=10, r=10),
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            plot_bgcolor="rgba(0,0,0,0)"
+        )
+
+        st.plotly_chart(fig_vol, width='stretch')
+
     # ===================================================
-    # ROW 2 – SALES & GROSS PROFIT TREND (2 LINES)
+    # ROW 2 – REVENUE VS PROFIT TREND (Margin Drivers)
     # ===================================================
 
-    st.markdown("**Monthly Trend**")
+    # Monthly aggregation
+    monthly_trend = (
+        filtered_df
+            .set_index("Order Date")
+            .resample("ME")
+            .agg({
+                "Sales": "sum",
+                "Gross Profit": "sum"
+            })
+            .reset_index()
+    )
 
-    fig_trend = go.Figure()
+    fig_driver = go.Figure()
 
-    fig_trend.add_trace(go.Scatter(
-        x=monthly.index,
-        y=monthly["Sales"],
-        mode="lines",
-        name="Sales"
+    fig_driver.add_trace(go.Scatter(
+        x=monthly_trend["Order Date"],
+        y=monthly_trend["Sales"],
+        mode="lines+markers",
+        name="Revenue"
     ))
 
-    fig_trend.add_trace(go.Scatter(
-        x=monthly.index,
-        y=monthly["Gross Profit"],
-        mode="lines",
+    fig_driver.add_trace(go.Scatter(
+        x=monthly_trend["Order Date"],
+        y=monthly_trend["Gross Profit"],
+        mode="lines+markers",
         name="Gross Profit"
     ))
 
-    fig_trend.update_layout(
-        height=280,
-        margin=dict(t=10, b=10, l=10, r=10),
-        font=dict(size=10),
-        legend=dict(font=dict(size=9))
+    fig_driver.update_layout(
+        title="Revenue vs Profit Trend (Margin Drivers)",
+        height=300,
+        hovermode="x unified",
+        yaxis_title="Amount ($)",
+        xaxis_title=None
     )
 
-    st.plotly_chart(fig_trend, use_container_width=True)
+    st.plotly_chart(fig_driver, width='stretch')
 
 
 # ===================================================
-# TAB 1 – PRODUCT PROFITABILITY
+# TAB 1 – PRODUCT PROFITABILITY OVERVIEW
 # ===================================================
 
+elif selected_module == "Product Profitability Overview":
 
-elif selected_module == "Product Profitability":
-    st.markdown("## Product Profitability Overview")
+    st.markdown("### Product Profitability Overview")
+    # st.caption("Tip: Hover over charts to view exact values.")
+    # ---------------------------------------------
+    # Get KPI Data (Modular Architecture)
+    # ---------------------------------------------
+    kpi_data = calculate_kpis(filtered_df)
+    product_summary = kpi_data["product_summary"]
+    total_products = product_summary.shape[0]
+    avg_margin = product_summary["Gross Margin (%)"].mean()
+    top_product = product_summary.sort_values("Gross Profit", ascending=False)["Product Name"].iloc[0]
 
+    col1, col2, col3 = st.columns(3)
 
-    # Match EDA logic
-    product_summary = (
-        filtered_df
-        .groupby("Product Name")
-        .agg({
-            "Sales": "sum",
-            "Gross Profit": "sum",
-            "Units": "sum",
-            "Gross Margin": "mean"
-        })
-        .reset_index()
-    )
+    with col1:
+        st.metric("Total Products", total_products)
 
+    with col2:
+        st.metric("Avg Product Margin", f"{avg_margin:.2f}%")
 
+    with col3:
+        st.metric("Top Profit Product", " ")
+        st.write(top_product)
+    st.divider()
 
-    # -------- Leaderboard Controls --------
+    # ---------------------------------------------
+    # Leaderboard Controls
+    # ---------------------------------------------
     col1, col2 = st.columns(2)
+
     with col1:
         metric_choice = st.selectbox(
-        "Leaderboard Ranking Metric",
-        ["Gross Profit", "Gross Margin", "Sales", "Units"]
-    )
+            "Select Leaderboard Ranking Metric",
+            ["Gross Margin (%)", "Gross Profit", "Sales", "Units", "Profit per Unit"]
+        )
 
     with col2:
         leaderboard_size = st.slider(
-            "Number of Products",
+            "Select Number of Products",
             5, 40, 15
         )
 
@@ -401,389 +611,282 @@ elif selected_module == "Product Profitability":
         .head(leaderboard_size)
     )
 
-    fig, ax = plt.subplots(figsize=(10,6))
-    sns.barplot(
-        data=leaderboard,
-        y="Product Name",
-        x=metric_choice,
-        ax=ax
+    # ===================================================
+    # 1️⃣ Leaderboard – Horizontal Bar
+    # ===================================================
+
+    fig_leaderboard = go.Figure()
+
+    fig_leaderboard.add_trace(go.Bar(
+        x=leaderboard[metric_choice],
+        y=leaderboard["Product Name"],
+        orientation="h"
+    ))
+
+    fig_leaderboard.update_layout(
+        title=f"Product-level {metric_choice} Leaderboard",
+        height=400,
+        yaxis=dict(autorange="reversed"),
+        xaxis_title=metric_choice,
+        margin=dict(l=10, r=10, t=40, b=10)
     )
-    ax.set_title(f"Top Products by {metric_choice}")
-    ax.set_xlabel(metric_choice)
-    ax.set_ylabel("")
-    fig = style_chart(fig, ax)
-    st.pyplot(fig)
 
-    # -------- Profit Contribution --------
-    st.subheader("Profit Contribution (%)")
+    st.plotly_chart(fig_leaderboard, width="stretch")
 
-    # Aggregate & sort
+    # ===================================================
+    # 2️⃣ Revenue & Profit Contribution – Grouped Bar
+    # ===================================================
+
     contribution = (
         product_summary
         .sort_values("Gross Profit", ascending=False)
         .head(leaderboard_size)
-        .copy()
     )
 
-    # Calculate percentage contribution
-    total_profit_products = product_summary["Gross Profit"].sum()
-    contribution["Contribution %"] = (
-        contribution["Gross Profit"] / total_profit_products
+    fig_contribution = go.Figure()
+
+    fig_contribution.add_trace(go.Bar(
+        x=contribution["Revenue Contribution (%)"],
+        y=contribution["Product Name"],
+        name="Revenue %",
+        orientation="h"
+    ))
+
+    fig_contribution.add_trace(go.Bar(
+        x=contribution["Profit Contribution (%)"],
+        y=contribution["Product Name"],
+        name="Profit %",
+        orientation="h"
+    ))
+
+    fig_contribution.update_layout(
+        title="Revenue vs Profit Contribution (%)",
+        barmode="group",
+        height=400,
+        yaxis=dict(autorange="reversed"),
+        xaxis_title="Contribution (%)",
+        margin=dict(l=10, r=10, t=40, b=10)
     )
 
-    # Wrap long product names
-    def wrap_labels(label, width=25):
-        import textwrap
-        return "\n".join(textwrap.wrap(label, width))
+    st.plotly_chart(fig_contribution, width="stretch")
 
-    contribution["Wrapped Name"] = contribution["Product Name"].apply(wrap_labels)
+    # ==============================================================
+    # 3️⃣ Product Portfolio Positioning/Map Revenue vs Margin Scatter
+    # ==============================================================
 
-    # Plot
-    fig, ax = plt.subplots(figsize=(11,7))
+    product_summary = product_summary.copy()
 
-    bars = ax.barh(
-        contribution["Wrapped Name"],
-        contribution["Contribution %"]
-    )
-    ax.invert_yaxis()
-    # ax.set_title("Product Profit Contribution")
-    ax.set_xlabel("Contribution % of Total Profit")
-    ax.set_ylabel("")
+    avg_sales = product_summary["Sales"].mean()
+    avg_margin = product_summary["Gross Margin (%)"].mean()
 
-    # 🔹 Reduce y-axis tick font size
-    ax.tick_params(axis='y', labelsize=8)
+    # Assign Quadrant Category
+    product_summary["Quadrant"] = "Other"
 
-    # 🔹 Annotate with bar color for visibility
-    for bar in bars:
-        width = bar.get_width()
-        bar_color = bar.get_facecolor()
+    product_summary.loc[
+        (product_summary["Sales"] >= avg_sales) &
+        (product_summary["Gross Margin (%)"] >= avg_margin),
+        "Quadrant"
+    ] = "High Revenue / High Margin"
 
-        ax.text(
-            width + 0.005,
-            bar.get_y() + bar.get_height()/2,
-            f"{width:.2%}",
-            va="center",
-            fontsize=9,
-            color="white"
-        )
+    product_summary.loc[
+        (product_summary["Sales"] >= avg_sales) &
+        (product_summary["Gross Margin (%)"] < avg_margin),
+        "Quadrant"
+    ] = "High Revenue / Low Margin"
 
-    ax.set_xlim(0, contribution["Contribution %"].max() * 1.15)
+    product_summary.loc[
+        (product_summary["Sales"] < avg_sales) &
+        (product_summary["Gross Margin (%)"] >= avg_margin),
+        "Quadrant"
+    ] = "Low Revenue / High Margin"
 
-    fig = style_chart(fig, ax)
-    st.pyplot(fig)
+    product_summary.loc[
+        (product_summary["Sales"] < avg_sales) &
+        (product_summary["Gross Margin (%)"] < avg_margin),
+        "Quadrant"
+    ] = "Low Revenue / Low Margin"
 
-    # -------- Revenue Contribution --------
-    st.subheader("Revenue Contribution (%)")
 
-    # Aggregate & sort
-    revenue_contribution = (
-        product_summary
-        .sort_values("Sales", ascending=False)
-        .head(leaderboard_size)
-        .copy()
+    fig_scatter = px.scatter(
+        product_summary,
+        x="Sales",
+        y="Gross Margin (%)",
+        color="Quadrant",
+        hover_name="Product Name",
+        height=450
     )
 
-    # Calculate percentage contribution
-    total_sales_products = product_summary["Sales"].sum()
+    fig_scatter.add_vline(x=avg_sales, line_dash="dash", line_width=1)
+    fig_scatter.add_hline(y=avg_margin, line_dash="dash", line_width=1)
 
-    revenue_contribution["Contribution %"] = (
-        revenue_contribution["Sales"] / total_sales_products
+    fig_scatter.update_layout(
+        title="Product Portfolio Positioning: Revenue vs Margin",
+        xaxis_title="Total Revenue ($)",
+        yaxis_title="Gross Margin (%)",
+        legend_title="Portfolio Position",
+        margin=dict(l=20, r=20, t=40, b=20)
     )
 
-    # Wrap long product names
-    def wrap_labels(label, width=25):
-        import textwrap
-        return "\n".join(textwrap.wrap(label, width))
-
-    revenue_contribution["Wrapped Name"] = (
-        revenue_contribution["Product Name"].apply(wrap_labels)
-    )
-
-    # Plot
-    fig, ax = plt.subplots(figsize=(11,7))
-
-    bars = ax.barh(
-        revenue_contribution["Wrapped Name"],
-        revenue_contribution["Contribution %"]
-    )
-
-    ax.invert_yaxis()
-    ax.set_xlabel("Contribution % of Total Sales")
-    ax.set_ylabel("")
-
-    # Reduce y-axis tick font size
-    ax.tick_params(axis='y', labelsize=8)
-
-    # Annotate bars
-    for bar in bars:
-        width = bar.get_width()
-
-        ax.text(
-            width + 0.005,
-            bar.get_y() + bar.get_height()/2,
-            f"{width:.2%}",
-            va="center",
-            fontsize=9,
-            color="white"
-        )
-
-    ax.set_xlim(0, revenue_contribution["Contribution %"].max() * 1.15)
-
-    # Apply dark styling
-    fig = style_chart(fig, ax)
-
-    st.pyplot(fig)
-
+    st.plotly_chart(fig_scatter, width="stretch")
 
 
 # ===================================================
-# TAB 2 – DIVISION PERFORMANCE (EXECUTIVE VERSION)
+# TAB 2 – DIVISION PERFORMANCE
 # ===================================================
 
 elif selected_module == "Division Performance":
 
-    st.header("Division Performance Dashboard")
+    st.markdown("### Division Performance Overview")
+    # ---------------------------------------------
+    # KPI Data
+    # ---------------------------------------------
+    kpi_data = calculate_kpis(filtered_df)
+    division_summary = kpi_data["division_summary"]
 
-    # --------------------------------------------------
-    # Aggregate Division-Level Metrics
-    # --------------------------------------------------
-    division_metrics = (
-        filtered_df
-        .groupby('Division')
-        .agg({
-            'Sales': 'sum',
-            'Gross Profit': 'sum',
-            'Cost': 'sum'
-        })
-        .reset_index()
+    division_summary = division_summary.sort_values(
+        "Revenue Contribution (%)",
+        ascending=False
     )
 
-    # Core KPIs
-    division_metrics['Gross Margin'] = (
-        division_metrics['Gross Profit'] /
-        division_metrics['Sales']
-    )
+    col1, col2, col3 = st.columns(3)
 
-    total_revenue = division_metrics['Sales'].sum()
-    total_profit = division_metrics['Gross Profit'].sum()
+    with col1:
+        st.metric("Top Division (Revenue)", division_summary.iloc[0]["Division"])
 
-    division_metrics['Revenue_Contribution_%'] = (
-        division_metrics['Sales'] / total_revenue * 100
-    )
+    with col2:
+        st.metric("Top Revenue Share", f"{division_summary.iloc[0]['Revenue Contribution (%)']:.1f}%")
 
-    division_metrics['Profit_Contribution_%'] = (
-        division_metrics['Gross Profit'] / total_profit * 100
-    )
-
-    division_metrics['Profit_Revenue_Gap'] = (
-        division_metrics['Profit_Contribution_%'] -
-        division_metrics['Revenue_Contribution_%']
-    )
-
-    # Performance flag
-    division_metrics['Performance Flag'] = np.where(
-        division_metrics['Profit_Revenue_Gap'] > 0,
-        "Overperforming",
-        "Underperforming"
-    )
-
-    # Consistent sorting by Revenue
-    division_metrics = division_metrics.sort_values(
-        'Sales', ascending=False
-    ).reset_index(drop=True)
-
-    divisions = division_metrics['Division']
-    x = np.arange(len(divisions))
-
-    # ===================================================
-    # 1️⃣ Revenue vs Profit (Absolute Comparison)
-    # ===================================================
-    st.subheader("Revenue vs Profit Comparision by Division")
-
-    fig1, ax1 = plt.subplots(figsize=(10,5))
-
-    bar_width = 0.35
-
-    bars1 = ax1.bar(
-        x,
-        division_metrics['Sales'],
-        width=bar_width,
-        label='Revenue ($)',
-        color="#5364B1"
-    )
-
-    bars2 = ax1.bar(
-        x + bar_width,
-        division_metrics['Gross Profit'],
-        width=bar_width,
-        label='Gross Profit ($)',
-        color="#3A9E85"
-    )
-
-    ax1.set_xticks(x + bar_width / 2)
-    ax1.set_xticklabels(divisions, fontweight='bold')
-    ax1.set_ylabel("Amount ($)")
-    # ax1.set_title("Revenue vs Gross Profit by Division", fontweight='bold')
-    ax1.legend()
-
-    fig1 = style_chart(fig1, ax1)
-    st.pyplot(fig1)
-
-    # ===================================================
-    # 2️⃣ Gross Margin by Division
-    # ===================================================
-    st.subheader("Gross Margin Distribution by Division")
-    # Sort divisions by Gross Margin (High → Low)
-    sorted_margin = division_metrics.sort_values(
-        'Gross Margin', ascending=False
-    )
-
-    fig2, ax2 = plt.subplots(figsize=(9,5))
-
-    bars = ax2.bar(
-        sorted_margin['Division'],
-        sorted_margin['Gross Margin'],
-        color="#4C72B0"
-    )
-
-    ax2.set_ylabel("Gross Margin (%)")
-    # ax2.set_title("Division-Level Margin Performance", fontweight='bold')
-
-    # Annotate margin %
-    for bar in bars:
-        height = bar.get_height()
-        ax2.text(
-            bar.get_x() + bar.get_width()/2,
-            height + 0.005,
-            f"{height:.2%}",
-            ha='center',
-            fontsize=10,
-            color="white",
-            fontweight="bold"
-        )
-
-    fig2 = style_chart(fig2, ax2)
-    st.pyplot(fig2)
-
+    with col3:
+        st.metric("Top Profit Share", f"{division_summary.iloc[0]['Profit Contribution (%)']:.1f}%")
+    
+    st.divider()
 
 
     # ===================================================
-    # 3️⃣ Revenue vs Profit Contribution (%)
+    # 1️⃣ Revenue vs Profit Contribution (Strategic View)
     # ===================================================
-    st.subheader("Revenue vs Profit Contribution (%)")
 
-    fig3, ax3 = plt.subplots(figsize=(10,5))
+    fig_contribution = go.Figure()
 
-    bars1 = ax3.bar(
-        x,
-        division_metrics['Revenue_Contribution_%'],
-        width=bar_width,
-        label='Revenue Contribution (%)',
-        color="#5364B1"
+    fig_contribution.add_trace(go.Bar(
+        x=division_summary["Division"],
+        y=division_summary["Revenue Contribution (%)"],
+        name="Revenue %"
+    ))
+
+    fig_contribution.add_trace(go.Bar(
+        x=division_summary["Division"],
+        y=division_summary["Profit Contribution (%)"],
+        name="Profit %"
+    ))
+
+    fig_contribution.update_traces(
+        texttemplate="%{y:.1f}%",
+        textposition="outside",
+        cliponaxis=False
     )
 
-    bars2 = ax3.bar(
-        x + bar_width,
-        division_metrics['Profit_Contribution_%'],
-        width=bar_width,
-        label='Profit Contribution (%)',
-        color="#3A9E85"
-    )
-    # Annotate Revenue bars
-    for bar in bars1:
-        height = bar.get_height()
-        bar_color = bar.get_facecolor()
-
-        ax3.text(
-            bar.get_x() + bar.get_width()/2,
-            height + 0.5,
-            f"{height:.1f}%",
-            ha='center',
-            fontsize=9,
-            color="white"
-        )
-
-    # Annotate Profit bars
-    for bar in bars2:
-        height = bar.get_height()
-        bar_color = bar.get_facecolor()
-
-        ax3.text(
-            bar.get_x() + bar.get_width()/2,
-            height + 0.5,
-            f"{height:.1f}%",
-            ha='center',
-            fontsize=9,
-            color="white"
-        )
-    ax3.set_xticks(x + bar_width / 2)
-    ax3.set_xticklabels(divisions, fontweight='bold')
-    ax3.set_ylabel("Contribution (%)")
-    # ax3.set_title("Revenue vs Profit Share by Division", fontweight='bold')
-    ax3.legend()
-
-    fig3 = style_chart(fig3, ax3)
-    st.pyplot(fig3)
-
-    # ===================================================
-    # 4️⃣ Profit-Revenue Gap (Efficiency Indicator)
-    # ===================================================
-    st.subheader("Profit-Revenue Gap (Efficiency Indicator)")
-
-    fig4, ax4 = plt.subplots(figsize=(9,4))
-
-    colors = [
-        "#3A9E85" if gap > 0 else "#D9534F"
-        for gap in division_metrics['Profit_Revenue_Gap']
-    ]
-
-    bars = ax4.bar(
-        divisions,
-        division_metrics['Profit_Revenue_Gap'],
-        color=colors
+    fig_contribution.update_layout(
+        title="Revenue vs Profit Contribution (%)",
+        barmode="group",
+        height=420,
+        yaxis_title="Contribution (%)",
+        hovermode="x unified"
     )
 
-    ax4.axhline(0, linewidth=1)
-    ax4.set_ylabel("Gap (%)")
-    # ax4.set_title("Profit Contribution Minus Revenue Contribution", fontweight='bold')
-
-    for bar in bars:
-        height = bar.get_height()
-        ax4.text(
-            bar.get_x() + bar.get_width()/2,
-            height + (0.3 if height > 0 else -0.8),
-            f"{height:.2f}%",
-            ha='center',
-            fontsize=9,
-            color="white"
-        )
-
-    fig4 = style_chart(fig4, ax4)
-    st.pyplot(fig4)
+    st.plotly_chart(fig_contribution, width="stretch")
 
     # ===================================================
-    # 5️⃣ Executive Diagnostic Table
+    # 2️⃣ Profit-Revenue Gap (Efficiency Signal)
     # ===================================================
-    st.subheader("Division Financial Diagnostics")
+
+    fig_gap = px.bar(
+        division_summary,
+        x="Division",
+        y="Profit-Revenue Gap (%)",
+        color="Performance Flag",
+        color_discrete_map={
+            "Overperforming": "green",
+            "Underperforming": "red",
+            "Neutral": "gray"
+        }
+    )
+
+    fig_gap.add_hline(y=0)
+
+    fig_gap.update_traces(
+        text=division_summary["Profit-Revenue Gap (%)"]
+            .round(2)
+            .astype(str) + "%",
+        textposition="outside",
+        cliponaxis=False
+    )
+
+    fig_gap.update_layout(
+        title="Profit-Revenue Gap (Efficiency Indicator)",
+        height=400,
+        yaxis_title="Gap (%)"
+    )
+
+    st.plotly_chart(fig_gap, width="stretch")
+
+    # ===================================================
+    # 3️⃣ Gross Margin Quality
+    # ===================================================
+
+    sorted_margin = division_summary.sort_values(
+        "Gross Margin (%)",
+        ascending=False
+    )
+
+    fig_margin = px.bar(
+        sorted_margin,
+        x="Division",
+        y="Gross Margin (%)"
+    )
+
+    fig_margin.update_traces(
+        text=sorted_margin["Gross Margin (%)"]
+            .round(2)
+            .astype(str) + "%",
+        textposition="outside",
+        cliponaxis=False
+    )
+
+    fig_margin.update_layout(
+        title="Gross Margin (%) by Division",
+        height=400,
+        yaxis_title="Gross Margin (%)"
+    )
+
+    st.plotly_chart(fig_margin, width="stretch")
+
+    # ===================================================
+    # Executive Diagnostic Table
+    # ===================================================
+
+    st.markdown("### Division Financial Diagnostics")
 
     st.dataframe(
-        division_metrics[
+        division_summary[
             [
                 "Division",
-                "Gross Margin",
-                "Revenue_Contribution_%",
-                "Profit_Contribution_%",
-                "Profit_Revenue_Gap",
+                "Gross Margin (%)",
+                "Revenue Contribution (%)",
+                "Profit Contribution (%)",
+                "Profit-Revenue Gap (%)",
                 "Performance Flag"
             ]
         ].style.format({
-            "Gross Margin": "{:.2%}",
-            "Revenue_Contribution_%": "{:.2f}%",
-            "Profit_Contribution_%": "{:.2f}%",
-            "Profit_Revenue_Gap": "{:.2f}%"
+            "Gross Margin (%)": "{:.2f}%",
+            "Revenue Contribution (%)": "{:.2f}%",
+            "Profit Contribution (%)": "{:.2f}%",
+            "Profit-Revenue Gap (%)": "{:.2f}%"
         })
     )
 
+
+    
 
 # ===================================================
 # TAB 3 – COST DIAGNOSTICS
@@ -1021,3 +1124,4 @@ elif selected_module == "Pareto Analysis":
 
         cutoff = np.argmax(pareto["Cumulative %"] >= 0.8) + 1
         st.success(f"{cutoff} products generate 80% of {metric}")
+
