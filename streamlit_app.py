@@ -30,22 +30,13 @@ def get_base64_image(path):
             return base64.b64encode(f.read()).decode()
     return ""
 
-um_base64 = get_base64_image("assets/um.png")
-nas_base64 = get_base64_image("assets/nas.png")
+logo_base64 = get_base64_image("assets/logo.png")
 
 st.markdown(
     f"""
-    <div style="
-        background-color: #ffffff;
-        border-bottom: 1px solid #e5e7eb;
-        padding: 25px 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 8vw;
-    ">
-        <img src="data:image/png;base64,{um_base64}" width="220">
-        <img src="data:image/png;base64,{nas_base64}" width="260">
+    <div style=" background-color: #0D1117; border-bottom: 1px solid #e5e7eb; 
+    padding: 25px 0; display: flex; justify-content: center; align-items: center; gap: 8vw; ">
+        <img src="data:image/png;base64,{logo_base64}" >
     </div>
     """,
     unsafe_allow_html=True
@@ -426,7 +417,7 @@ if selected_module == "Overview":
             ))
 
             fig_margin.update_layout(
-                height=100,
+                height=140,
                 margin=dict(t=0, b=0, l=0, r=0),
                 showlegend=False,
                 annotations=[dict(
@@ -1124,5 +1115,4 @@ elif selected_module == "Pareto Analysis":
 
         cutoff = np.argmax(pareto["Cumulative %"] >= 0.8) + 1
         st.success(f"{cutoff} products generate 80% of {metric}")
-
 
