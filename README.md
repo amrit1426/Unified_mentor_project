@@ -1,288 +1,253 @@
+```markdown
 # 🍬 Product Line Profitability & Margin Performance Analysis
-### Nassau Candy Distributor — Data Analytics Portfolio Project
+### Nassau Candy Distributor
 
-<br>
-
-![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat&logo=python&logoColor=white)
-![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?style=flat&logo=streamlit&logoColor=white)
-![Plotly](https://img.shields.io/badge/Plotly-Interactive%20Charts-3F4F75?style=flat&logo=plotly&logoColor=white)
-![Pandas](https://img.shields.io/badge/Pandas-Data%20Analysis-150458?style=flat&logo=pandas&logoColor=white)
-![Status](https://img.shields.io/badge/Status-Complete-2ea44f?style=flat)
+![Python](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?logo=streamlit&logoColor=white)
+![Plotly](https://img.shields.io/badge/Plotly-Interactive%20Charts-3F4F75?logo=plotly&logoColor=white)
+![Pandas](https://img.shields.io/badge/Pandas-Data%20Analysis-150458?logo=pandas&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 ---
 
 ## 📌 Project Overview
 
-This project delivers a comprehensive **product-line profitability and margin performance analysis** for Nassau Candy Distributor — one of the largest wholesale manufacturers and distributors of specialty confections in the United States.
+Nassau Candy is one of the largest wholesale manufacturers and distributors of specialty and private-label confections in the United States, operating across thousands of SKUs with vertically integrated manufacturing and nationwide distribution.
 
-Using transactional order-level data, the analysis moves beyond surface-level revenue metrics to uncover **which products and divisions truly drive profit**, which carry hidden margin risk, and where strategic intervention — through pricing, cost renegotiation, or portfolio rationalization — can have the greatest financial impact.
+**The Business Problem:**
+In high-volume distribution environments, revenue figures alone are a misleading measure of business health. Products that sell in large volumes may carry thin margins, absorb disproportionate operational costs, or weaken overall portfolio profitability without being immediately visible in top-line metrics.
 
-The project is delivered as two integrated outputs:
-- A **structured EDA notebook** documenting the full analytical workflow
-- An **interactive Streamlit dashboard** enabling real-time, filter-driven profitability exploration
+**Objective:**
+This project performs a comprehensive, data-driven profitability and margin performance analysis on Nassau Candy's transactional sales data to:
 
----
-
-## 🎯 Business Problem & Objective
-
-In high-volume distribution businesses, **sales figures alone are misleading**. Some products generate strong revenue but operate on thin margins. Others consume disproportionate cost while contributing minimally to total profit. Without granular profitability visibility, decisions around pricing, promotions, and portfolio management remain reactive and intuition-based.
-
-**This analysis aims to:**
-
-- Identify which product lines deliver the highest gross margin
-- Determine whether high-sales products are actually profitable
-- Quantify profit concentration risk across the product portfolio
-- Compare revenue and profit contributions across product divisions
-- Flag cost-heavy, margin-poor products for strategic review
-- Provide data-driven, actionable recommendations for portfolio and pricing decisions
+- Identify which products and divisions truly drive gross profit
+- Detect margin-risk items within the product portfolio
+- Quantify profit concentration and over-dependency risk
+- Diagnose cost structure inefficiencies at the product level
+- Deliver actionable recommendations for pricing, sourcing, and portfolio decisions
 
 ---
 
-## ✨ Key Features & Highlights
+## ✨ Key Features
 
-- ✅ **End-to-end analytical pipeline** — from raw data ingestion and cleaning through to business recommendations
-- ✅ **Five-module interactive Streamlit dashboard** with real-time filtering by date, division, product, and margin threshold
-- ✅ **Dual-level profitability analysis** — product-level rankings and division-level performance diagnostics
-- ✅ **Pareto (80/20) concentration analysis** — identifies over-dependency risk in revenue and profit
-- ✅ **Strategic quadrant classification** — products mapped as Stars, Volume Traps, Niche Opportunities, or Exit Candidates
-- ✅ **Cost structure diagnostics** — flags products with cost ratios or margins breaching risk thresholds
-- ✅ **Margin volatility tracking** — monthly standard deviation trend to assess portfolio stability over time
-- ✅ **Fully reproducible** — clean, modular, well-commented code with a public dataset
+| Feature | Description |
+|---|---|
+| **Exploratory Data Analysis** | Full EDA on transactional sales data using pandas, numpy, matplotlib, and seaborn |
+| **Profitability Analysis** | Product and division-level ranking by gross profit, gross margin, and profit per unit |
+| **Margin Analysis** | Margin volatility tracking, profit-revenue gap detection, and division efficiency scoring |
+| **Pareto Analysis** | 80/20 concentration analysis for both revenue and profit to identify over-dependency risk |
+| **Cost Diagnostics** | Cost-vs-sales scatter analysis, cost ratio flagging, and strategic quadrant classification |
+| **Interactive Dashboard** | Multi-module Streamlit dashboard with real-time filters, Plotly charts, and KPI cards |
 
 ---
 
-## 📂 Repository Structure
+## 🛠️ Tech Stack
+
+### EDA Notebook
+| Library | Purpose |
+|---|---|
+| `pandas` | Data loading, cleaning, and aggregation |
+| `numpy` | Numerical operations and metric calculations |
+| `matplotlib` | Static visualizations and chart styling |
+| `seaborn` | Statistical plots and distribution analysis |
+
+### Streamlit Dashboard
+| Library | Purpose |
+|---|---|
+| `streamlit` | Dashboard framework and UI layout |
+| `plotly` | Interactive charts (bar, scatter, Pareto, gauge, donut) |
+| `pandas` | Data filtering and KPI aggregation |
+| `numpy` | Derived metric and flag calculations |
+
+---
+
+## 📁 Project Structure
 
 ```
 nassau-candy-profitability/
 │
-├── assets/                                      # Project logo assets
-│   └── logo.png                                 # Company logo for dashboard header
+├── assets/
+│   └── logo.png                              # Company logo for dashboard header
 │
-├── 20260125_Nassau_Candy_Distributor.ipynb      # Full EDA & analysis notebook
-│                                                # Covers data cleaning, KPI calculations,
-│                                                # product/division analysis, Pareto, and
-│                                                # cost diagnostics with written commentary
-│
-├── Nassau_Candy_Distributor.csv                 # Source transactional dataset
-│                                                # ~10,000+ order-level records across
-│                                                # products, divisions, customers, and regions
-│
-├── streamlit_app.py                             # Interactive Streamlit dashboard
-│                                                # Five analytical modules with sidebar
-│                                                # filters and Plotly visualizations
-│
-├── requirements.txt                             # Python package dependencies
-│
-└── README.md                                    # Project documentation (this file)
+├── 20260125_Nassau_Candy_Distributor.ipynb   # EDA notebook — full exploratory analysis
+├── Nassau_Candy_Distributor.csv              # Raw transactional dataset
+├── streamlit_app.py                          # Interactive Streamlit dashboard
+├── requirements.txt                          # Python dependencies
+└── README.md                                 # Project documentation
 ```
 
 ---
 
-## 🗂️ Dataset Description
+## 📊 Dataset Description
+
+The dataset contains **10,194 transactional records** across **18 fields**, where each row represents a single product line item within a customer order.
 
 | Field | Description |
 |---|---|
-| `Row ID` | Unique row identifier |
 | `Order ID` | Unique order identifier |
-| `Order Date` | Date the order was placed |
-| `Ship Date` | Date the order was shipped |
+| `Order Date` / `Ship Date` | Transaction and shipment dates |
 | `Ship Mode` | Shipping method used |
 | `Customer ID` | Unique customer identifier |
-| `Country / Region` | Customer country or region |
-| `City` | Customer city |
-| `State / Province` | Customer state or province |
-| `Postal Code` | Customer postal code |
+| `City`, `State/Province`, `Region` | Customer geographic information |
 | `Division` | Product division (Chocolate, Sugar, Other) |
-| `Region` | Customer geographic region |
-| `Product ID` | Unique product identifier |
-| `Product Name` | Full product name |
+| `Product ID` / `Product Name` | Product identifiers |
 | `Sales` | Total sales value of the order ($) |
-| `Units` | Total units sold in the order |
-| `Gross Profit` | Gross profit = Sales − Cost ($) |
+| `Units` | Total units sold |
 | `Cost` | Manufacturing cost of the order ($) |
+| `Gross Profit` | Sales − Cost ($) |
 
-> **Source:** Dataset provided by [Unified Mentor](https://www.unifiedmentor.com/) as part of the Data Analyst Internship programme. Also accessible via the project's public [Google Drive link](https://drive.google.com/file/d/1c4VDb0Pf7RCgps4aLMiSuLtdaUpU_X49/view).
+> 📥 **Dataset Source:** [Nassau Candy Distributor Dataset](https://drive.google.com/file/d/1c4VDb0Pf7RCgps4aLMiSuLtdaUpU_X49/view) — provided by [Unified Mentor](https://www.unifiedmentor.com/)
 
 ---
 
-## 🛠️ Tools & Technologies
+## 🔬 Methodology
 
-| Category | Tools |
+### 1. Data Cleaning & Validation
+- Removed exact duplicate records
+- Parsed and validated `Order Date` and `Ship Date` fields; excluded unparseable rows
+- Enforced numeric types on `Sales`, `Cost`, `Units`, and `Gross Profit`
+- Removed records with zero or negative values in financial fields
+- Cross-validated `Gross Profit` against `Sales − Cost`; excluded inconsistent rows
+- Standardized `Product Name` and `Division` labels (whitespace stripped, title-cased)
+
+### 2. Feature Engineering
+- **Gross Margin (row-level):** `Gross Profit / Sales`
+- **Profit per Unit (row-level):** `Gross Profit / Units`
+
+### 3. KPI Calculations
+
+| KPI | Formula |
 |---|---|
-| **Language** | Python 3.10+ |
-| **Data Manipulation** | Pandas, NumPy |
-| **Visualisation** | Plotly (Graph Objects & Express) |
-| **Dashboard** | Streamlit |
-| **Notebook Environment** | Jupyter Notebook |
-| **Version Control** | Git & GitHub |
+| Gross Margin (%) | `(Gross Profit ÷ Sales) × 100` |
+| Profit per Unit | `Gross Profit ÷ Units Sold` |
+| Revenue Contribution (%) | `Product Sales ÷ Total Sales × 100` |
+| Profit Contribution (%) | `Product Profit ÷ Total Profit × 100` |
+| Profit-Revenue Gap (%) | `Profit Contribution − Revenue Contribution` |
+| Margin Volatility | `σ(Monthly Gross Margin %)` |
+| Cost Ratio | `Cost ÷ Sales` |
+
+### 4. Analytical Approach
+1. **Product-Level Analysis** — Ranked products by gross profit and gross margin; classified portfolio into strategic quadrants (Stars, Volume Traps, Niche Opportunities, Exit Candidates)
+2. **Division-Level Analysis** — Aggregated metrics by division; evaluated revenue-vs-profit imbalance and flagged overperforming and underperforming divisions
+3. **Pareto Analysis** — Determined the minimum number of products required to generate 80% of total revenue and total profit
+4. **Cost Diagnostics** — Scatter-based cost-vs-sales analysis; flagged products with margin < 5% or cost ratio > 0.90 with actionable recommendations
 
 ---
 
-## 📊 Key Insights
+## 📱 Dashboard Features
 
-> *Insights are directional and based on observed patterns in the data. Exact figures are available in the notebook and dashboard.*
+The Streamlit dashboard is organized into **five independent modules**, accessible from the sidebar.
 
-- **Profit is highly concentrated** — a small subset of products drives the overwhelming majority of total gross profit, consistent with the Pareto principle. This concentration, while reflecting portfolio strength, introduces significant over-dependency risk.
+### Overview
+- Global KPI cards: **Gross Margin (%)**, **Profit per Unit**, **Margin Volatility**
+- Gross margin donut chart and profit-per-unit gauge
+- Rolling 3-month volatility sparkline
+- Monthly **Revenue vs. Gross Profit** trend chart
 
-- **The Chocolate division dominates financially** — it accounts for the vast majority of both total revenue and gross profit, and its profit contribution consistently exceeds its revenue share, signalling strong structural margin efficiency.
+### Product Profitability Overview
+- Leaderboard: rank products by any KPI (Gross Margin %, Gross Profit, Sales, Units, Profit per Unit)
+- Grouped bar chart: **Revenue vs. Profit Contribution (%)** per product
+- Scatter chart: **Portfolio Positioning** — Revenue vs. Gross Margin with quadrant classification
 
-- **Revenue and profit contributions are misaligned in the Other division** — despite generating meaningful revenue, the Other division contributes a disproportionately smaller share of gross profit, indicating structural margin constraints likely tied to product mix or cost structure.
+### Division Performance
+- Grouped bar: **Revenue vs. Profit Contribution (%)** by division
+- Diverging bar: **Profit-Revenue Gap** with overperforming/underperforming flags
+- Bar chart: **Gross Margin (%)** by division
+- Executive diagnostic table with all division-level KPIs
 
-- **High-sales products are not always high-margin products** — several products appear commercially significant by volume but operate with thin margins that limit their actual profit contribution.
+### Cost Diagnostics
+- Interactive **Cost vs. Sales scatter** (color-encoded by margin %, with break-even reference line)
+- Summary KPI row: Avg Margin %, High Risk Products, Low Margin Products, Avg Cost Ratio
+- **Products Requiring Attention** table with strategic position and recommendations
+- Division risk overview table and bar chart
 
-- **A clear cost-risk product was identified** — at least one product in the portfolio exhibits a cost ratio exceeding 0.90, meaning costs consume more than 90% of its sales revenue, flagging it for immediate cost renegotiation or portfolio review.
+### Pareto Analysis
+- Dual-axis Pareto chart (bar + cumulative line) for **Gross Profit** and **Sales**
+- 80% threshold reference line with automatic cutoff annotation
 
-- **The Sugar division maintains healthy margins at small scale** — despite contributing minimally to total revenue, its gross margin is comparable to the Chocolate division, suggesting pricing efficiency in a niche segment.
-
----
-
-## 🖥️ Dashboard Features
-
-The Streamlit dashboard is structured into **five analytical modules**, accessible via the sidebar:
-
-### 🔍 Sidebar Filters (Global)
-- **Date Range Selector** — filter all modules by order date window
-- **Division Filter** — isolate analysis to a specific product division
-- **Product Search** — focus analysis on a single product
-- **Margin Risk Threshold Slider** — surface only products meeting a minimum margin threshold
-
----
-
-### 📋 Module 1 — Overview
-- **Gross Margin (%) KPI** with donut visualisation and total sales / profit summary
-- **Profit per Unit KPI** with gauge chart and units sold
-- **Margin Volatility KPI** with rolling 3-month standard deviation sparkline
-- **Revenue vs Profit Trend** — monthly line chart showing divergence between sales and profit over time
-
-### 📦 Module 2 — Product Profitability Overview
-- **Product Leaderboard** — ranked horizontal bar chart; switchable by Gross Profit, Gross Margin %, Sales, Units, or Profit per Unit
-- **Revenue vs Profit Contribution Chart** — grouped bar comparing each product's revenue share and profit share side-by-side
-- **Portfolio Positioning Scatter** — four-quadrant map (Stars / Volume Traps / Niche Opportunities / Exit Candidates) plotting every product by revenue and margin
-
-### 🏢 Module 3 — Division Performance
-- **Revenue vs Profit Contribution by Division** — grouped bar chart with percentage labels
-- **Profit-Revenue Gap Chart** — diverging bar showing which divisions over- or under-perform relative to their revenue share
-- **Gross Margin Quality Bar** — division-level margin comparison
-- **Division Financial Diagnostics Table** — full summary with margin, contribution, gap, and performance flag
-
-### 💰 Module 4 — Cost Diagnostics
-- **Cost vs Sales Scatter** — product-level scatter with gross margin as colour encoding and a 45° break-even reference line; optional product labels
-- **KPI Summary Row** — average margin %, high-risk product count, low-margin product count, average cost ratio
-- **Risk-Flagged Products Table** — products with margin < 5% or cost ratio > 0.90, with strategic classification and recommended action
-- **Division Risk Overview** — side-by-side table and bar chart of average margin and cost ratio by division
-
-### 📈 Module 5 — Pareto Analysis
-- **Pareto Combo Charts** (one each for Gross Profit and Sales) — bar chart of individual contribution overlaid with a cumulative percentage line and an 80% threshold reference line
-- **Concentration Summary** — auto-generated statement identifying how many products reach the 80% contribution threshold
+### Sidebar Filters (apply across all modules)
+- 📅 Date range selector
+- 🏭 Division filter
+- 🔍 Product search
+- 📉 Margin risk threshold slider
 
 ---
 
 ## ⚙️ Installation & Setup
 
-### 1. Clone the Repository
+### Prerequisites
+- Python 3.9 or higher
+- pip
 
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/your-username/nassau-candy-profitability.git
 cd nassau-candy-profitability
 ```
 
 ### 2. Create a Virtual Environment (Recommended)
-
 ```bash
-# Using venv
 python -m venv venv
 
-# Activate — macOS / Linux
+# On macOS/Linux
 source venv/bin/activate
 
-# Activate — Windows
+# On Windows
 venv\Scripts\activate
 ```
 
 ### 3. Install Dependencies
-
 ```bash
 pip install -r requirements.txt
 ```
 
-**Core dependencies include:**
-
-```
-streamlit
-pandas
-numpy
-plotly
-```
-
----
-
-## ▶️ How to Run the Streamlit App
-
+### 4. Run the Streamlit Dashboard
 ```bash
 streamlit run streamlit_app.py
 ```
 
-The dashboard will open automatically in your default browser at:
+The app will open automatically in your browser at `http://localhost:8501`.
 
-```
-http://localhost:8501
+### 5. Run the EDA Notebook
+```bash
+jupyter notebook 20260125_Nassau_Candy_Distributor.ipynb
 ```
 
-> **Note:** The dataset is loaded directly from the public GitHub repository URL within `streamlit_app.py`, so no manual data setup is required. Ensure you have an active internet connection on first load, or replace the URL with the local path to `Nassau_Candy_Distributor.csv`.
+> **Note:** The dashboard loads data directly from the public GitHub-hosted CSV. No manual data setup is required.
 
 ---
 
-## 📸 Screenshots
+## 💡 Results & Insights
 
-> *Screenshot placeholders — replace with actual dashboard captures before publishing.*
+- **Profit is highly concentrated:** A small subset of products drives the majority of both revenue and profit, consistent with the Pareto principle. This introduces over-dependency risk requiring active portfolio management.
 
-| Module | Preview |
-|---|---|
-| Overview — KPI Panel | `[ screenshot: overview_kpis.png ]` |
-| Product Leaderboard | `[ screenshot: product_leaderboard.png ]` |
-| Portfolio Positioning Scatter | `[ screenshot: portfolio_scatter.png ]` |
-| Division Performance | `[ screenshot: division_performance.png ]` |
-| Cost Diagnostics Scatter | `[ screenshot: cost_diagnostics.png ]` |
-| Pareto Analysis | `[ screenshot: pareto_analysis.png ]` |
+- **Chocolate division dominates:** The Chocolate division accounts for approximately **92.9% of revenue** and **95.1% of gross profit**, with a gross margin of ~67.5% and a positive profit-revenue gap — indicating structural over-performance relative to its revenue share.
+
+- **The Other division underperforms:** Despite contributing ~6.8% of revenue, the Other division delivers only ~4.6% of total profit with the lowest gross margin (~44.8%) and a negative profit-revenue gap, signaling structural margin constraints.
+
+- **Kazookles flagged as cost risk:** With a cost ratio of 0.92 and a gross margin of only 7.69%, Kazookles (Other division) was identified as a Volume Trap requiring cost renegotiation or pricing review.
+
+- **High-sales ≠ high-margin:** Several products generating significant revenue operate below the portfolio's average gross margin, representing pricing inefficiency or elevated cost structures that reduce their true financial contribution.
 
 ---
 
 ## 🔮 Future Improvements
 
-- [ ] **Time-series drill-down** — month-over-month and year-over-year margin trend comparison per product
-- [ ] **Customer-segment profitability layer** — extend analysis to identify most and least profitable customer segments by region
-- [ ] **Automated PDF report export** — generate a one-click summary report from the dashboard for stakeholder distribution
-- [ ] **Pricing sensitivity module** — model the margin impact of hypothetical price changes on flagged products
-- [ ] **Factory-level cost analysis** — leverage the factory-product correlation table from the PRD to attribute costs to sourcing locations
-- [ ] **Deployment** — host the dashboard on Streamlit Community Cloud for public access
+- **Time-series forecasting** — Integrate ARIMA or Prophet models to project margin trends and flag early deterioration
+- **Customer-level profitability** — Extend analysis to measure margin contribution per customer segment or region
+- **Automated alerting** — Add threshold-based email or Slack alerts when product margins fall below defined risk levels
+- **Scenario modeling** — Build an interactive what-if tool allowing pricing and cost simulations within the dashboard
+- **Database integration** — Replace CSV ingestion with a live database or data warehouse connection for real-time analytics
+- **Unit test coverage** — Add automated tests for KPI calculation functions to ensure data integrity across updates
 
 ---
 
 ## 🙏 Acknowledgements
 
-This project was completed as part of the **Data Analyst Internship Programme** at [**Unified Mentor**](https://www.unifiedmentor.com/).
-
-- **Dataset:** Provided by Unified Mentor for the Nassau Candy Distributor analysis project
-- **Project Scope & PRD:** Defined by Unified Mentor as part of the structured internship curriculum
-- **Nassau Candy Distributor:** [nassaucandy.com](https://www.nassaucandy.com/) — the real-world business context for this analysis
+- **[Unified Mentor](https://www.unifiedmentor.com/)** — Project scope, mentorship, and dataset provision
+- **[Nassau Candy](https://www.nassaucandy.com/)** — Real-world business context
 
 ---
 
-## 👤 Author
-
-**[Your Name]**
-
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://linkedin.com/in/your-profile)
-[![GitHub](https://img.shields.io/badge/GitHub-Portfolio-181717?style=flat&logo=github&logoColor=white)](https://github.com/your-username)
-[![Email](https://img.shields.io/badge/Email-Contact-D14836?style=flat&logo=gmail&logoColor=white)](mailto:your.email@example.com)
-
-> *Replace the placeholders above with your actual name, LinkedIn profile, GitHub username, and email address before publishing.*
-
----
-
-<div align="center">
-
-*Built with 🍬 and Python — as part of a data analytics portfolio.*
-
-</div>
+*This project was completed as part of the Unified Mentor Data Analyst Internship Program.*
+```
